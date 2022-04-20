@@ -290,6 +290,46 @@ contract PresaleNft is ERC721PresetMinterPauserAutoId
     }
 
     /**
+     * Get starts.
+     * @dev returns all start times
+     */
+    function getStarts() external view returns (uint256, uint256, uint256, uint256)
+    {
+        return (
+            presaleOneStart,
+            presaleTwoStart,
+            presaleThreeStart,
+            claimStart
+        );
+    }
+
+    /**
+     * Get all presale data.
+     * @dev Returns all presale data.
+     */
+    function getPresaleData() external view returns (uint256, uint256, uint256)
+    {
+        return (
+            supply(),
+            value(),
+            price()
+        );
+    }
+
+    /**
+     * Get all owner data
+     * @dev returns all owner data.
+     */
+    function getOwnerData(address owner_) external view returns (uint256, uint256, uint256)
+    {
+        return (
+            max(owner_),
+            ownedValue(owner_),
+            balanceOf(owner_)
+        );
+    }
+
+    /**
      * -------------------------------------------------------------------------
      * ADMIN FUNCTIONS
      * -------------------------------------------------------------------------
