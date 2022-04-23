@@ -23,9 +23,13 @@ contract Verifier is Ownable
     address private _signer;
 
     /**
-     * Contract events.
+     * Constructor.
      */
-    event SignerUpdated(address signer_);
+    constructor()
+    {
+        // Set signer = deployer
+        _signer = msg.sender;
+    }
 
     /**
      * -------------------------------------------------------------------------
@@ -82,6 +86,5 @@ contract Verifier is Ownable
     function updateSigner(address signer_) external onlyOwner
     {
         _signer = signer_;
-        emit SignerUpdated(signer_);
     }
 }

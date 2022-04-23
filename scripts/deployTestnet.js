@@ -1,34 +1,34 @@
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
 
-const USDCAddress = '0x665D47E47C5f008caE73a3c4DE982b1A7A904f18';
+//const USDCAddress = '0x5CEB2e44A73B05E241293a85b2e4dE0AF706a8aC';
 
 async function main() {
     const [deployer] = await hre.ethers.getSigners();
     // deploy USDC
-    //USDC = await ethers.getContractFactory("MockUSDC");
-    //usdc = await USDC.deploy();
-    //console.log("USDC deployed to", usdc.address);
-    //await usdc.mint(deployer.address, "1000000000000");
+    USDC = await ethers.getContractFactory("MockUSDC");
+    usdc = await USDC.deploy();
+    console.log("USDC deployed to", usdc.address);
+    await usdc.mint(deployer.address, "1000000000000");
     // deploy treasury
     Treasury = await ethers.getContractFactory("Treasury");
     treasury = await Treasury.deploy();
     console.log("Treasury deployed to", treasury.address);
     // deploy token
-    Token = await ethers.getContractFactory("Token");
-    token = await Token.deploy();
-    console.log("Token deployed to", token.address);
+    //Token = await ethers.getContractFactory("Token");
+    //token = await Token.deploy();
+    //console.log("Token deployed to", token.address);
     // deploy presale
     PresaleNft = await ethers.getContractFactory("PresaleNft");
     presalenft = await PresaleNft.deploy();
     console.log("Presale NFT deployed to", presalenft.address);
-    await presalenft.setPaymentToken(USDCAddress);
+    await presalenft.setPaymentToken(usdc.address);
     await presalenft.setTreasury(treasury.address);
-    await presalenft.setFurioToken(token.address);
+    //await presalenft.setFurioToken(token.address);
     await presalenft.setPresaleOneStart(Math.floor(((Date.now() / 1000) + (60*3))));
-    await presalenft.setPresaleTwoStart(Math.floor(((Date.now() / 1000) + (60*10))));
-    await presalenft.setPresaleThreeStart(Math.floor(((Date.now() / 1000) + (60*20))));
-    await token.unpause();
+    await presalenft.setPresaleTwoStart(Math.floor(((Date.now() / 1000) + (60*6))));
+    await presalenft.setPresaleThreeStart(Math.floor(((Date.now() / 1000) + (60*9))));
+    //await token.unpause();
 }
 
 main()

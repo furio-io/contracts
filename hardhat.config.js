@@ -54,6 +54,11 @@ module.exports = {
     polygon: {
         url: process.env.POLYGON_RPC_URL || '',
         accounts: accounts,
+        gasMultiplier: 10,
+    },
+    fantomtestnet: {
+        url: process.env.FANTOM_TESTNET_RPC_URL || '',
+        accounts: accounts,
     },
   },
   etherscan: {
