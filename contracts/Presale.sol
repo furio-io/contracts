@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 // Interfaces
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "./interfaces/IVerifier.sol";
@@ -51,7 +52,12 @@ contract Presale is Ownable, ERC721Enumerable
      * Signature buys.
      * @dev Map signatures to number of purchases.
      */
-    mapping(bytes => uint256) private _buys;
+    mapping(address => mapping(string => uint256)) private _buys;
+
+    /**
+     * Claimed tokens.
+     */
+    mapping(uint256 => bool) public claimed;
 
     /**
      * Events.
@@ -94,9 +100,7 @@ contract Presale is Ownable, ERC721Enumerable
     ) external returns (bool)
     {
         // Make sure quantity is less than max.
-        require(quantity_ < max_, "Quantity is too high");
-        // Make sure they don't exceed the max total for this signature.
-        require(_buys[signature_] + quantity_ < max_, "Quantity is too high");
+        require(quantity_ <= max_, "Quantity is too high");
         // Make sure the verifier contract is set.
         require(address(_verifier) != address(0), "Verifier not set");
         // Make sure the payment token is set.
@@ -106,9 +110,11 @@ contract Presale is Ownable, ERC721Enumerable
         // Make sure the signature isn't expired.
         require(expiration_ >= block.timestamp, "Signature expired");
         // Re-create the signature salt using max, price, & value.
-        string memory _salt_ = string(abi.encode('max', max_, 'price', price_, 'value', value_));
+        string memory _salt_ = string(abi.encodePacked('max', Strings.toString(max_), 'price', Strings.toString(price_), 'value', Strings.toString(value_)));
+        // Make sure they don't exceed the max total for this salt.
+        require(_buys[msg.sender][_salt_] + quantity_ <= max_, "Quantity is too high");
         // Verify the signature is valid.
-        require(_verifier.verify(signature_, msg.sender, _salt_, expiration_), "Invalid signature");
+        require(_verifier.verify(signature_, msg.sender, _salt_, expiration_), _salt_);
         // Get payment token decimals.
         uint256 _decimals_ = paymentToken.decimals();
         // Get a payment from the user.
@@ -120,7 +126,7 @@ contract Presale is Ownable, ERC721Enumerable
             // Add the value to the tokenValue mapping.
             tokenValue[_tokenIdTracker] = value_;
             // Increment the signature quantity.
-            _buys[signature_] ++;
+            _buys[msg.sender][_salt_] ++;
             // Finally, mint the token.
             _mint(msg.sender, _tokenIdTracker);
             emit NftPurchased(msg.sender, _tokenIdTracker, price_, value_);
@@ -141,12 +147,34 @@ contract Presale is Ownable, ERC721Enumerable
         uint256 _value_ = 0;
         for(uint256 i = 0; i < balanceOf(msg.sender); i ++) {
             uint256 _tokenId_ = tokenOfOwnerByIndex(msg.sender, i);
+            if(claimed[_tokenId_]) {
+                continue;
+            }
             _value_ += tokenValue[_tokenId_];
-            _burn(_tokenId_);
+            claimed[_tokenId_] = true;
             emit NftClaimed(msg.sender, _tokenId_, tokenValue[_tokenId_]);
         }
+        require(_value_ > 0, "No claimable tokens");
         uint256 _decimals_ = furToken.decimals();
         furToken.mint(msg.sender, _value_ * (10 ** _decimals_));
+    }
+
+    /**
+     * Value.
+     * @param owner_ Owner of presale tokens.
+     * @dev Returns the total value of all NFTs owned by an address.
+     */
+    function value(address owner_) external view returns (uint256)
+    {
+        uint256 _value_ = 0;
+        for(uint256 i = 0; i < balanceOf(owner_); i ++) {
+            uint256 _tokenId_ = tokenOfOwnerByIndex(owner_, i);
+            if(claimed[_tokenId_]) {
+                continue;
+            }
+            _value_ += tokenValue[_tokenId_];
+        }
+        return _value_;
     }
 
     /**
@@ -154,7 +182,8 @@ contract Presale is Ownable, ERC721Enumerable
      * @param tokenId_ Id of the token.
      * @dev This just returns the same URI for all tokens in this contract.
      */
-    function tokenURI(uint256 tokenId_) public view virtual override returns (string memory) {
+    function tokenURI(uint256 tokenId_) public view virtual override returns (string memory)
+    {
         require(_exists(tokenId_), "Token does not exist");
         return _tokenUri;
     }
@@ -194,6 +223,16 @@ contract Presale is Ownable, ERC721Enumerable
     function setTreasury(address treasury_) external onlyOwner
     {
         treasury = treasury_;
+    }
+
+    /**
+     * Set fur token.
+     * @param furToken_ Address of the $FUR token contract.
+     * @dev This sets the address for the $FUR token.
+     */
+    function setFurToken(address furToken_) external onlyOwner
+    {
+        furToken = IToken(furToken_);
     }
 
     /**

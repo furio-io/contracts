@@ -60,6 +60,15 @@ module.exports = {
         url: process.env.FANTOM_TESTNET_RPC_URL || '',
         accounts: accounts,
     },
+    bsctestnet: {
+        url: process.env.BSC_TESTNET_RPC_URL || '',
+        accounts: accounts,
+        gasMultiplier: 3,
+    },
+    bsc: {
+        url: process.env.BSC_RPC_URL || '',
+        accounts: accounts,
+    },
   },
   etherscan: {
     apiKey: {
@@ -67,6 +76,7 @@ module.exports = {
         rinkeby: process.env.ETHERSCAN_API_KEY,
         ropsten: process.env.ETHERSCAN_API_KEY,
         polygon: process.env.POLYGONSCAN_API_KEY,
+        bsc: process.env.BSCSCAN_API_KEY,
     },
   },
   gasReporter: {
