@@ -6,11 +6,17 @@ const EthCrypto = require("eth-crypto");
 const ownerPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const addr1PrivateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 
-describe("Verifier", function () {
+describe("Presale", function () {
     // RUN THIS BEFORE EACH TEST
     beforeEach(async function () {
         Verifier = await ethers.getContractFactory("Verifier");
         verifier = await Verifier.deploy();
+        Presale = await ethers.getContractFactory("Presale");
+        presale = await Presale.deploy();
+        Usdc = await ethers.getContractFactory("MockUSDC");
+        usdc = await Usdc.deploy();
+        Token = await ethers.getContractFactory("Token");
+        token = await Token.deploy();
     });
     // Test signatures
     it("Can verify signatures", async function () {

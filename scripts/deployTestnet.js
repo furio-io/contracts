@@ -18,16 +18,17 @@ async function main() {
     //Token = await ethers.getContractFactory("Token");
     //token = await Token.deploy();
     //console.log("Token deployed to", token.address);
+    // deploy verifier
+    Verifier = await ethers.getContractFactory("Verifier");
+    verifier = await Verifier.deploy();
     // deploy presale
-    PresaleNft = await ethers.getContractFactory("PresaleNft");
-    presalenft = await PresaleNft.deploy();
-    console.log("Presale NFT deployed to", presalenft.address);
-    await presalenft.setPaymentToken(usdc.address);
-    await presalenft.setTreasury(treasury.address);
-    //await presalenft.setFurioToken(token.address);
-    await presalenft.setPresaleOneStart(Math.floor(((Date.now() / 1000) + (60*3))));
-    await presalenft.setPresaleTwoStart(Math.floor(((Date.now() / 1000) + (60*6))));
-    await presalenft.setPresaleThreeStart(Math.floor(((Date.now() / 1000) + (60*9))));
+    Presale = await ethers.getContractFactory("Presale");
+    presale = await Presale.deploy();
+    console.log("Presale NFT deployed to", presale.address);
+    await presale.setPaymentToken(usdc.address);
+    await presale.setTreasury(treasury.address);
+    await presale.setVerifier(verifier.address);
+    //await presale.setFurioToken(token.address);
     //await token.unpause();
 }
 

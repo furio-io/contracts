@@ -51,7 +51,7 @@ contract Verifier is Ownable
     function verify(
         bytes memory signature_,
         address sender_,
-        uint256 salt_,
+        string memory salt_,
         uint256 expiration_
     ) external view returns (bool) {
         // Return false if the signature is expired.

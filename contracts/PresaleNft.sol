@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 // INTERFACES
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "./interfaces/IToken.sol";
+import "./interfaces/IVerifier.sol";
 
 contract PresaleNft is ERC721PresetMinterPauserAutoId
 {
@@ -22,9 +23,18 @@ contract PresaleNft is ERC721PresetMinterPauserAutoId
     IERC20 public paymentToken;
 
     /**
+     * Verifier.
+     */
+    IVerifier public verifier;
+
+    /**
      * Treasury.
      */
     address public treasury;
+
+    /**
+     * Verifier.
+     */
 
     /**
      * Furio token.
