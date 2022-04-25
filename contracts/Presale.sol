@@ -49,10 +49,16 @@ contract Presale is Ownable, ERC721Enumerable
     mapping(uint256 => uint256) public tokenValue;
 
     /**
-     * Signature buys.
-     * @dev Map signatures to number of purchases.
+     * Salt buys.
+     * @dev Map salt to number of purchases by address.
      */
     mapping(address => mapping(string => uint256)) private _buys;
+
+    /**
+     * Salt totals.
+     * @dev Map salt to total number of purchases.
+     */
+    mapping(string => uint256) private _totals;
 
     /**
      * Claimed tokens.
@@ -83,6 +89,7 @@ contract Presale is Ownable, ERC721Enumerable
      * @param max_ The max available to buy.
      * @param price_ The price per NFT.
      * @param value_ The value per NFT.
+     * @param total_ The total NFTs available.
      * @param expiration_ The expiration date of the verification signature.
      * @return bool True if successful.
      * @dev This buy method uses a signature comprised of the max, price
@@ -96,11 +103,10 @@ contract Presale is Ownable, ERC721Enumerable
         uint256 max_,
         uint256 price_,
         uint256 value_,
+        uint256 total_,
         uint256 expiration_
     ) external returns (bool)
     {
-        // Make sure quantity is less than max.
-        require(quantity_ <= max_, "Quantity is too high");
         // Make sure the verifier contract is set.
         require(address(_verifier) != address(0), "Verifier not set");
         // Make sure the payment token is set.
@@ -109,12 +115,14 @@ contract Presale is Ownable, ERC721Enumerable
         require(treasury != address(0), "Treasury not set");
         // Make sure the signature isn't expired.
         require(expiration_ >= block.timestamp, "Signature expired");
+        // Make sure quantity is less than max.
+        require(quantity_ <= max_, "Quantity is too high");
+        require(sold(max_, price_, value_, total_) + quantity_ <= total_, "Quantity is too high");
+        require(quantity_ <= available(msg.sender, max_, price_, value_, total_), "Quantity is too high");
         // Re-create the signature salt using max, price, & value.
-        string memory _salt_ = string(abi.encodePacked('max', Strings.toString(max_), 'price', Strings.toString(price_), 'value', Strings.toString(value_)));
-        // Make sure they don't exceed the max total for this salt.
-        require(_buys[msg.sender][_salt_] + quantity_ <= max_, "Quantity is too high");
+        string memory _salt_ = _salt(max_, price_, value_, total_);
         // Verify the signature is valid.
-        require(_verifier.verify(signature_, msg.sender, _salt_, expiration_), _salt_);
+        require(_verifier.verify(signature_, msg.sender, _salt_, expiration_), "Invalid signature");
         // Get payment token decimals.
         uint256 _decimals_ = paymentToken.decimals();
         // Get a payment from the user.
@@ -127,6 +135,7 @@ contract Presale is Ownable, ERC721Enumerable
             tokenValue[_tokenIdTracker] = value_;
             // Increment the signature quantity.
             _buys[msg.sender][_salt_] ++;
+            _totals[_salt_] ++;
             // Finally, mint the token.
             _mint(msg.sender, _tokenIdTracker);
             emit NftPurchased(msg.sender, _tokenIdTracker, price_, value_);
@@ -178,6 +187,34 @@ contract Presale is Ownable, ERC721Enumerable
     }
 
     /**
+     * Get available to purchase.
+     * @param buyer_ Address of buyer.
+     * @param max_ Max NFTs available.
+     * @param price_ Price of each NFT.
+     * @param value_ Value of each NFT.
+     * @param total_ Total NFTs available.
+     * @return uint256 Number of NFTs available.
+     * @dev Calculates the remaining number of NFTs available for a user.
+     */
+    function available(address buyer_, uint256 max_, uint256 price_, uint256 value_, uint256 total_) public view returns (uint256)
+    {
+        return max_ - _buys[buyer_][_salt(max_, price_, value_, total_)];
+    }
+
+    /**
+     * Sold.
+     * @param max_ Max per person.
+     * @param price_ Price per NFT.
+     * @param value_ Value per NFT.
+     * @param total_ Total NFTs available.
+     * @return uint256 Number of NFTs sold with this salt.
+     */
+    function sold(uint256 max_, uint256 price_, uint256 value_, uint256 total_) public view returns (uint256)
+    {
+        return _totals[_salt(max_, price_, value_, total_)];
+    }
+
+    /**
      * Token URI.
      * @param tokenId_ Id of the token.
      * @dev This just returns the same URI for all tokens in this contract.
@@ -186,6 +223,30 @@ contract Presale is Ownable, ERC721Enumerable
     {
         require(_exists(tokenId_), "Token does not exist");
         return _tokenUri;
+    }
+
+    /**
+     * -------------------------------------------------------------------------
+     * INTERNAL FUNCTIONS.
+     * -------------------------------------------------------------------------
+     */
+
+    /**
+     * Make salt.
+     * @param max_ Max NFTs per person.
+     * @param price_ Price per NFT.
+     * @param value_ Value per NFT.
+     * @param total_ Total NFTs available.
+     * @return string Salt.
+     */
+    function _salt(uint256 max_, uint256 price_, uint256 value_, uint256 total_) internal pure returns (string memory)
+    {
+        return string(abi.encodePacked(
+            'max', Strings.toString(max_),
+            'price', Strings.toString(price_),
+            'value', Strings.toString(value_),
+            'total', Strings.toString(total_)
+        ));
     }
 
     /**

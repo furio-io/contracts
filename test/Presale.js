@@ -38,10 +38,13 @@ describe("Presale", function () {
     it("Can purchase a presale NFT", async function () {
         await expect(usdc.mint(addr1.address, "250000000")).to.not.be.reverted;
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("1", "250", "500");
+        expect(await presale.available(addr1.address, "1", "250", "500", "300")).to.equal(1);
+        const salt = getSalt("1", "250", "500", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "250000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", "300", expiration)).to.not.be.reverted;
+        expect(await presale.available(addr1.address, "1", "250", "500", "300")).to.equal(0);
+        expect(await presale.sold("1", "250", "500", "300")).to.equal(1);
         expect(await presale.balanceOf(addr1.address)).to.equal(1);
         expect(await presale.tokenValue(1)).to.equal(500);
         expect(await presale.value(addr1.address)).to.equal(500);
@@ -50,76 +53,92 @@ describe("Presale", function () {
     it("Cannot purchase more than the max per signature", async function () {
         await expect(usdc.mint(addr1.address, "500000000")).to.not.be.reverted;
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("1", "250", "500");
+        const salt = getSalt("1", "250", "500", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "500000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", expiration)).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", expiration)).to.be.revertedWith("Quantity is too high");
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", "300", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", "300", expiration)).to.be.revertedWith("Quantity is too high");
     });
     it("Can purchase multiple times with the same signature", async function () {
         await expect(usdc.mint(addr1.address, "1650000000")).to.not.be.reverted;
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("10", "150", "100");
+        const salt = getSalt("10", "150", "100", "1250");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "1650000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", "1250", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(1);
         expect(await presale.tokenValue(1)).to.equal(100);
         expect(await presale.value(addr1.address)).to.equal(100);
         expect(await usdc.balanceOf(treasury.address)).to.equal("150000000");
-        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", "1250", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(2);
         expect(await presale.tokenValue(2)).to.equal(100);
         expect(await presale.value(addr1.address)).to.equal(200);
         expect(await usdc.balanceOf(treasury.address)).to.equal("300000000");
-        await expect(presale.connect(addr1).buy(signature, "8", "10", "150", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "8", "10", "150", "100", "1250", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(10);
         expect(await presale.value(addr1.address)).to.equal(1000);
         expect(await usdc.balanceOf(treasury.address)).to.equal("1500000000");
-        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", expiration)).to.be.revertedWith("Quantity is too high");
+        await expect(presale.connect(addr1).buy(signature, "1", "10", "150", "100", "1250", expiration)).to.be.revertedWith("Quantity is too high");
     });
     it("Can purchase multiple times with different signatures", async function () {
         await expect(usdc.mint(addr1.address, "3500000000")).to.not.be.reverted;
         const expiration = await getBlockTimestamp() + 600;
-        var salt = getSalt("1", "250", "500");
+        var salt = getSalt("1", "250", "500", "300");
         var signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "250000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", expiration)).to.not.be.reverted;
-        var salt = getSalt("10", "150", "100");
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "250", "500", "300", expiration)).to.not.be.reverted;
+        var salt = getSalt("10", "150", "100", "1250");
         var signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "1500000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "10", "10", "150", "100", expiration)).to.not.be.reverted;
-        var salt = getSalt("10", "175", "100");
+        await expect(presale.connect(addr1).buy(signature, "10", "10", "150", "100", "1250", expiration)).to.not.be.reverted;
+        var salt = getSalt("10", "175", "100", "1250");
         var signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
         await expect(usdc.connect(addr1).approve(presale.address, "1750000000")).to.not.be.reverted;
-        await expect(presale.connect(addr1).buy(signature, "10", "10", "175", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "10", "10", "175", "100", "1250", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(21);
         expect(await presale.value(addr1.address)).to.equal(2500);
         expect(await usdc.balanceOf(treasury.address)).to.equal("3500000000");
     });
+    it("Cannot purchase more than the total available", async function () {
+        await expect(usdc.mint(owner.address, "1000000")).to.not.be.reverted;
+        await expect(usdc.mint(addr1.address, "1000000")).to.not.be.reverted;
+        await expect(usdc.mint(addr2.address, "1000000")).to.not.be.reverted;
+        const expiration = await getBlockTimestamp() + 600;
+        var salt = getSalt("1", "1", "10", "2");
+        var signature = getSignature(ownerPrivateKey, owner.address, salt, expiration);
+        await expect(usdc.approve(presale.address, "1000000")).to.not.be.reverted;
+        await expect(presale.buy(signature, "1", "1", "1", "10", "2", expiration)).to.not.be.reverted;
+        var signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
+        await expect(usdc.connect(addr1).approve(presale.address, "1000000")).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "1", "10", "2", expiration)).to.not.be.reverted;
+        var signature = getSignature(ownerPrivateKey, addr2.address, salt, expiration);
+        await expect(usdc.connect(addr2).approve(presale.address, "1000000")).to.not.be.reverted;
+        await expect(presale.connect(addr2).buy(signature, "1", "1", "1", "10", "2", expiration)).to.be.revertedWith("Quantity is too high");
+    });
     it("Can purchase a presale NFT for free", async function () {
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("1", "0", "500");
+        const salt = getSalt("1", "0", "500", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
-        await expect(presale.connect(addr1).buy(signature, "1", "1", "0", "500", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "1", "1", "0", "500", "300", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(1);
         expect(await presale.tokenValue(1)).to.equal(500);
         expect(await presale.value(addr1.address)).to.equal(500);
     });
     it("Cannot claim NFTs while token is paused", async function () {
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("10", "0", "100");
+        const salt = getSalt("10", "0", "100", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
-        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", "300", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(10);
         expect(await presale.value(addr1.address)).to.equal(1000);
         await expect(presale.connect(addr1).claim()).to.be.revertedWith("Fur token is paused");
     });
     it("Can claim NFTs when token is unpaused", async function () {
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("10", "0", "100");
+        const salt = getSalt("10", "0", "100", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
-        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", "300", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(10);
         expect(await presale.value(addr1.address)).to.equal(1000);
         await expect(token.unpause()).to.not.be.reverted;
@@ -128,9 +147,9 @@ describe("Presale", function () {
     });
     it("Cannot claim NFTs multiple times", async function () {
         const expiration = await getBlockTimestamp() + 600;
-        const salt = getSalt("10", "0", "100");
+        const salt = getSalt("10", "0", "100", "300");
         const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
-        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", expiration)).to.not.be.reverted;
+        await expect(presale.connect(addr1).buy(signature, "10", "10", "0", "100", "300", expiration)).to.not.be.reverted;
         expect(await presale.balanceOf(addr1.address)).to.equal(10);
         expect(await presale.value(addr1.address)).to.equal(1000);
         await expect(token.unpause()).to.not.be.reverted;
@@ -145,8 +164,8 @@ async function getBlockTimestamp () {
     return (await hre.ethers.provider.getBlock("latest")).timestamp;
 }
 
-const getSalt = (max, price, value) => {
-    return ['max', max, 'price', price, 'value', value].join('');
+const getSalt = (max, price, value, total) => {
+    return ['max', max, 'price', price, 'value', value, 'total', total].join('');
 }
 
 const getSignature = (pkey, address, salt, expiration) => {
