@@ -125,6 +125,13 @@ describe("Presale", function () {
         expect(await presale.tokenValue(1)).to.equal(500);
         expect(await presale.value(addr1.address)).to.equal(500);
     });
+    it("Available returns lesser of values", async function () {
+        const expiration = await getBlockTimestamp() + 600;
+        const salt = getSalt("3", "0", "1", "1");
+        const signature = getSignature(ownerPrivateKey, addr1.address, salt, expiration);
+        await expect(presale.connect(addr1).buy(signature, "1", "3", "0", "1", "1", expiration)).to.not.be.reverted;
+        expect(await presale.available(addr1.address, "3", "0", "1", "1")).to.equal(0);
+    });
     it("Cannot claim NFTs while token is paused", async function () {
         const expiration = await getBlockTimestamp() + 600;
         const salt = getSalt("10", "0", "100", "300");

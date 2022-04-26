@@ -77,6 +77,7 @@ module.exports = {
         ropsten: process.env.ETHERSCAN_API_KEY,
         polygon: process.env.POLYGONSCAN_API_KEY,
         bsc: process.env.BSCSCAN_API_KEY,
+        bscTestnet: process.env.BSCSCAN_API_KEY,
     },
   },
   gasReporter: {

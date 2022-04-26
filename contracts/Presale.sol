@@ -198,7 +198,11 @@ contract Presale is Ownable, ERC721Enumerable
      */
     function available(address buyer_, uint256 max_, uint256 price_, uint256 value_, uint256 total_) public view returns (uint256)
     {
-        return max_ - _buys[buyer_][_salt(max_, price_, value_, total_)];
+        string memory _salt_ = _salt(max_, price_, value_, total_);
+        uint256 _remaining_ = total_ - _totals[_salt_];
+        uint256 _available_ = max_ - _buys[buyer_][_salt_];
+        if(_available_ <= _remaining_) return _available_;
+        return _remaining_;
     }
 
     /**
